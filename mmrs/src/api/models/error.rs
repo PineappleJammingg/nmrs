@@ -32,6 +32,10 @@ pub enum ModemError {
     #[error("d-bus error: {0}")]
     Dbus(#[from] zbus::Error),
 
+    /// A standard freedesktop.org D-Bus interface operation failed.
+    #[error("d-bus fdo error: {0}")]
+    DbusFdo(#[from] zbus::fdo::Error),
+
     /// A D-Bus operation failed, with context about what was being attempted.
     #[error("{context}: {source}")]
     DbusOperation {
@@ -49,6 +53,15 @@ pub enum ModemError {
     /// No modem was found at the requested D-Bus path.
     #[error("modem not found: {0}")]
     ModemNotFound(String),
+
+    /// A supplied string was not a valid D-Bus object path.
+    #[error("invalid D-Bus object path `{path}`: {reason}")]
+    InvalidObjectPath {
+        /// The path that failed validation.
+        path: String,
+        /// Why the path is invalid.
+        reason: String,
+    },
 
     /// The modem is in the failed state and cannot be used.
     #[error("modem in failed state: {0}")]

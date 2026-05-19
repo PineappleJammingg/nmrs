@@ -10,6 +10,7 @@ keywords = ["modemmanager", "dbus", "cellular", "linux", "modem"]
 categories = ["api-bindings", "asynchronous"]
 
 [dependencies]
+futures.workspace = true
 log.workspace = true
 thiserror.workspace = true
 zbus.workspace = true
