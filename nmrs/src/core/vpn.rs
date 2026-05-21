@@ -519,19 +519,23 @@ async fn build_active_vpn_map(
             .map(DeviceState::from)
             .unwrap_or(DeviceState::Other(0));
 
-        let interface = ac_proxy
+        let interface = match ac_proxy
             .get_property::<Vec<OwnedObjectPath>>("Devices")
             .await
             .ok()
             .and_then(|devs| devs.first().cloned())
-            .and_then(|dev_path| {
-                futures::executor::block_on(async {
-                    let dp = nm_proxy(conn, dev_path, "org.freedesktop.NetworkManager.Device")
-                        .await
-                        .ok()?;
-                    dp.get_property::<String>("Interface").await.ok()
-                })
-            });
+        {
+            Some(dev_path) => {
+                let dp = nm_proxy(conn, dev_path, "org.freedesktop.NetworkManager.Device")
+                    .await
+                    .ok();
+                match dp {
+                    Some(proxy) => proxy.get_property::<String>("Interface").await.ok(),
+                    None => None,
+                }
+            }
+            None => None,
+        };
 
         map.insert(uuid, (state, interface, true));
     }
