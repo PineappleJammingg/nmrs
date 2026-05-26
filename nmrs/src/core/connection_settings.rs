@@ -12,7 +12,7 @@ use zvariant::{OwnedObjectPath, Value};
 use crate::Result;
 use crate::api::models::ConnectionError;
 use crate::util::utils::{connection_settings_proxy, settings_proxy};
-use crate::util::validation::validate_ssid;
+use crate::util::validation::validate_connection_name;
 
 /// Finds the D-Bus path of a saved connection by SSID or connection name.
 ///
@@ -20,23 +20,14 @@ use crate::util::validation::validate_ssid;
 /// and returns the path of the first one whose connection ID matches
 /// the given SSID or name.
 ///
-/// Note: This function is used for both WiFi SSIDs and VPN connection names.
-/// The validation enforces WiFi SSID rules (max 32 bytes), which is also
-/// reasonable for VPN connection names.
-///
 /// Returns `None` if no saved connection exists for this SSID/name.
 pub(crate) async fn get_saved_connection_path(
     conn: &Connection,
-    ssid: &str,
+    name: &str,
 ) -> Result<Option<OwnedObjectPath>> {
-    // Validate the connection name/SSID
-    if ssid.trim().is_empty() {
+    if should_skip_lookup(name)? {
         return Ok(None);
     }
-
-    // Validate using SSID rules (max 32 bytes, no special chars)
-    // This applies to both WiFi SSIDs and connection names
-    validate_ssid(ssid)?;
 
     let settings = settings_proxy(conn).await?;
 
@@ -65,13 +56,22 @@ pub(crate) async fn get_saved_connection_path(
 
         if let Some(conn_section) = all.get("connection")
             && let Some(Value::Str(id)) = conn_section.get("id")
-            && id == ssid
+            && id == name
         {
             return Ok(Some(cpath));
         }
     }
 
     Ok(None)
+}
+
+fn should_skip_lookup(name: &str) -> Result<bool> {
+    if name.trim().is_empty() {
+        return Ok(true);
+    }
+
+    validate_connection_name(name)?;
+    Ok(false)
 }
 
 /// Checks whether a saved connection exists for the given SSID.
@@ -98,4 +98,23 @@ pub(crate) async fn delete_connection(conn: &Connection, conn_path: OwnedObjectP
 
     debug!("Deleted connection: {}", conn_path.as_str());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn saved_connection_lookup_allows_vpn_names_longer_than_ssids() {
+        let name = "gw-UDP4-1199-namme.lastname-config";
+
+        assert!(name.len() > 32);
+        assert!(!should_skip_lookup(name).unwrap());
+    }
+
+    #[test]
+    fn saved_connection_lookup_skips_blank_names() {
+        assert!(should_skip_lookup("").unwrap());
+        assert!(should_skip_lookup("   ").unwrap());
+    }
 }
