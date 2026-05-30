@@ -72,6 +72,7 @@ pub fn build_wifi_connection(
         models::WifiSecurity::Open => builder.open(),
         models::WifiSecurity::WpaPsk { psk } => builder.wpa_psk(psk),
         models::WifiSecurity::WpaEap { opts } => builder.wpa_eap(opts.clone()),
+        models::WifiSecurity::Wpa3Eap192bit { opts } => builder.wpa3_eap_192_bit(opts.clone()),
     };
 
     builder.build()
@@ -190,9 +191,15 @@ mod tests {
             anonymous_identity: Some("anonymous@example.com".into()),
             domain_suffix_match: Some("example.com".into()),
             ca_cert_path: None,
+            ca_cert_blob: None,
             system_ca_certs: true,
             method: EapMethod::Peap,
             phase2: Phase2::Mschapv2,
+            private_key_path: None,
+            private_key_blob: None,
+            private_key_password: None,
+            client_cert_path: None,
+            client_cert_blob: None,
         };
         let conn = build_wifi_connection(
             "enterprise",
@@ -227,9 +234,15 @@ mod tests {
             anonymous_identity: None,
             domain_suffix_match: None,
             ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".into()),
+            ca_cert_blob: None,
             system_ca_certs: false,
             method: EapMethod::Ttls,
             phase2: Phase2::Pap,
+            private_key_path: None,
+            private_key_blob: None,
+            private_key_password: None,
+            client_cert_path: None,
+            client_cert_blob: None,
         };
         let conn = build_wifi_connection(
             "eduroam",
@@ -241,7 +254,108 @@ mod tests {
         assert_eq!(e1x.get("phase2-auth"), Some(&Value::from("pap")));
         assert_eq!(
             e1x.get("ca-cert"),
-            Some(&Value::from("file:///etc/ssl/certs/ca.pem".to_string()))
+            Some(&Value::from("file:///etc/ssl/certs/ca.pem"))
+        );
+        // system-ca-certs should NOT be present when false
+        assert!(e1x.get("system-ca-certs").is_none());
+    }
+
+    #[test]
+    fn builds_eap_tls_connection() {
+        let eap_opts = EapOptions {
+            identity: "student@uni.edu".into(),
+            password: String::new(),
+            anonymous_identity: None,
+            domain_suffix_match: None,
+            ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".into()),
+            ca_cert_blob: None,
+            system_ca_certs: false,
+            method: EapMethod::Tls,
+            phase2: Phase2::Mschapv2,
+            private_key_path: Some("file:///etc/ssl/private/client.key".into()),
+            private_key_blob: None,
+            private_key_password: Some("password".into()),
+            client_cert_path: Some("file:///etc/ssl/certs/client.crt".into()),
+            client_cert_blob: None,
+        };
+        let conn = build_wifi_connection(
+            "eduroam",
+            &WifiSecurity::WpaEap { opts: eap_opts },
+            &default_opts(),
+        );
+
+        let security = conn.get("802-11-wireless-security").unwrap();
+        assert_eq!(security.get("key-mgmt"), Some(&Value::from("wpa-eap")));
+
+        let e1x = conn.get("802-1x").unwrap();
+        assert_eq!(e1x.get("phase2-auth"), None);
+        assert_eq!(
+            e1x.get("private-key"),
+            Some(&Value::from("file:///etc/ssl/private/client.key"))
+        );
+        assert_eq!(
+            e1x.get("private-key-password"),
+            Some(&Value::from("password"))
+        );
+        assert_eq!(
+            e1x.get("client-cert"),
+            Some(&Value::from("file:///etc/ssl/certs/client.crt"))
+        );
+        assert_eq!(
+            e1x.get("ca-cert"),
+            Some(&Value::from("file:///etc/ssl/certs/ca.pem"))
+        );
+        // system-ca-certs should NOT be present when false
+        assert!(e1x.get("system-ca-certs").is_none());
+    }
+
+    #[test]
+    fn builds_eap_192bit_connection() {
+        let eap_opts = EapOptions {
+            identity: "student@uni.edu".into(),
+            password: String::new(),
+            anonymous_identity: None,
+            domain_suffix_match: None,
+            ca_cert_path: None,
+            ca_cert_blob: Some(b"ca_cert_blob".into()),
+            system_ca_certs: false,
+            method: EapMethod::Tls,
+            phase2: Phase2::Mschapv2,
+            private_key_path: None,
+            private_key_blob: Some(b"private_key_blob".into()),
+            private_key_password: Some("password".into()),
+            client_cert_path: None,
+            client_cert_blob: Some(b"client_cert_blob".into()),
+        };
+        let conn = build_wifi_connection(
+            "eduroam",
+            &WifiSecurity::Wpa3Eap192bit { opts: eap_opts },
+            &default_opts(),
+        );
+
+        let security = conn.get("802-11-wireless-security").unwrap();
+        assert_eq!(
+            security.get("key-mgmt"),
+            Some(&Value::from("wpa-eap-suite-b-192"))
+        );
+
+        let e1x = conn.get("802-1x").unwrap();
+        assert_eq!(e1x.get("phase2-auth"), None);
+        assert_eq!(
+            e1x.get("private-key"),
+            Some(&Value::from(b"private_key_blob".to_vec()))
+        );
+        assert_eq!(
+            e1x.get("private-key-password"),
+            Some(&Value::from("password"))
+        );
+        assert_eq!(
+            e1x.get("client-cert"),
+            Some(&Value::from(b"client_cert_blob".to_vec()))
+        );
+        assert_eq!(
+            e1x.get("ca-cert"),
+            Some(&Value::from(b"ca_cert_blob".to_vec()))
         );
         // system-ca-certs should NOT be present when false
         assert!(e1x.get("system-ca-certs").is_none());

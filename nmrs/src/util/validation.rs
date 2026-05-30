@@ -9,6 +9,7 @@ use crate::api::models::{
     ConnectionError, OpenVpnAuthType, OpenVpnConfig, OpenVpnProxy, VpnCredentials, WifiSecurity,
     WireGuardPeer,
 };
+use crate::{EapMethod, EapOptions};
 
 /// Maximum SSID length in bytes (802.11 standard).
 const MAX_SSID_BYTES: usize = 32;
@@ -138,13 +139,35 @@ pub fn validate_wifi_security(security: &WifiSecurity) -> Result<(), ConnectionE
         }
 
         WifiSecurity::WpaEap { opts } => {
-            // Validate identity
-            if opts.identity.trim().is_empty() {
+            validate_wifi_eap(opts)?;
+
+            Ok(())
+        }
+
+        WifiSecurity::Wpa3Eap192bit { opts } => {
+            if opts.method != EapMethod::Tls {
                 return Err(ConnectionError::InvalidAddress(
-                    "EAP identity cannot be empty".to_string(),
+                    "WPA3-EAP 192bit requires authentication method TLS".to_string(),
                 ));
             }
 
+            validate_wifi_eap(opts)?;
+
+            Ok(())
+        }
+    }
+}
+
+fn validate_wifi_eap(opts: &EapOptions) -> Result<(), ConnectionError> {
+    // Validate identity
+    if opts.identity.trim().is_empty() {
+        return Err(ConnectionError::InvalidAddress(
+            "EAP identity cannot be empty".to_string(),
+        ));
+    }
+
+    match opts.method {
+        EapMethod::Peap | EapMethod::Ttls => {
             // Validate password
             if opts.password.is_empty() {
                 return Err(ConnectionError::InvalidAddress(
@@ -169,24 +192,61 @@ pub fn validate_wifi_security(security: &WifiSecurity) -> Result<(), ConnectionE
                     "EAP domain suffix match cannot be empty if provided".to_string(),
                 ));
             }
-
-            // Validate CA cert path if provided
-            if let Some(ref ca_cert) = opts.ca_cert_path {
-                if ca_cert.trim().is_empty() {
-                    return Err(ConnectionError::InvalidAddress(
-                        "EAP CA certificate path cannot be empty if provided".to_string(),
-                    ));
-                }
-                // Check if it starts with file:// as required by NetworkManager
-                if !ca_cert.starts_with("file://") {
-                    return Err(ConnectionError::InvalidAddress(
-                        "EAP CA certificate path must start with 'file://'".to_string(),
-                    ));
-                }
+        }
+        EapMethod::Tls => {
+            if !validate_path_or_blob(
+                "EAP private key",
+                &opts.private_key_path,
+                &opts.private_key_blob,
+            )? {
+                return Err(ConnectionError::InvalidAddress(
+                    "EAP private key must be provided".to_string(),
+                ));
             }
 
-            Ok(())
+            if !validate_path_or_blob(
+                "EAP client certificate",
+                &opts.client_cert_path,
+                &opts.client_cert_blob,
+            )? {
+                return Err(ConnectionError::InvalidAddress(
+                    "EAP client certificate must be provided".to_string(),
+                ));
+            }
         }
+    }
+
+    validate_path_or_blob("EAP CA certificate", &opts.ca_cert_path, &opts.ca_cert_blob)?;
+
+    Ok(())
+}
+
+fn validate_path_or_blob(
+    field: &str,
+    path: &Option<String>,
+    blob: &Option<Vec<u8>>,
+) -> Result<bool, ConnectionError> {
+    // Validate CA cert path if provided
+    match (path, blob) {
+        (None, None) => Ok(false),
+        (Some(path), None) => {
+            if path.trim().is_empty() {
+                return Err(ConnectionError::InvalidAddress(format!(
+                    "{field} path cannot be empty if provided"
+                )));
+            }
+            // Check if it starts with file:// as required by NetworkManager
+            if !path.starts_with("file://") {
+                return Err(ConnectionError::InvalidAddress(format!(
+                    "{field} path must start with 'file://'"
+                )));
+            }
+            Ok(true)
+        }
+        (None, Some(_)) => Ok(true),
+        (Some(_), Some(_)) => Err(ConnectionError::InvalidAddress(format!(
+            "{field} path and blob cannot be provided at the same time"
+        ))),
     }
 }
 
@@ -826,9 +886,15 @@ mod tests {
                 anonymous_identity: None,
                 domain_suffix_match: Some("example.com".to_string()),
                 ca_cert_path: Some("file:///etc/ssl/cert.pem".to_string()),
+                ca_cert_blob: None,
                 system_ca_certs: false,
                 method: EapMethod::Peap,
                 phase2: Phase2::Mschapv2,
+                private_key_path: None,
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: None,
+                client_cert_blob: None,
             },
         };
         assert!(validate_wifi_security(&eap).is_ok());
@@ -843,9 +909,15 @@ mod tests {
                 anonymous_identity: None,
                 domain_suffix_match: None,
                 ca_cert_path: None,
+                ca_cert_blob: None,
                 system_ca_certs: true,
                 method: EapMethod::Peap,
                 phase2: Phase2::Mschapv2,
+                private_key_path: None,
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: None,
+                client_cert_blob: None,
             },
         };
         assert!(validate_wifi_security(&eap).is_err());
@@ -860,9 +932,199 @@ mod tests {
                 anonymous_identity: None,
                 domain_suffix_match: None,
                 ca_cert_path: Some("/etc/ssl/cert.pem".to_string()), // Missing file://
+                ca_cert_blob: None,
                 system_ca_certs: false,
                 method: EapMethod::Peap,
                 phase2: Phase2::Mschapv2,
+                private_key_path: None,
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: None,
+                client_cert_blob: None,
+            },
+        };
+        assert!(validate_wifi_security(&eap).is_err());
+    }
+
+    #[test]
+    fn test_validate_wifi_security_eap_192bit_not_tls() {
+        let eap = WifiSecurity::Wpa3Eap192bit {
+            opts: EapOptions {
+                identity: "".to_string(),
+                password: "password".to_string(),
+                anonymous_identity: None,
+                domain_suffix_match: None,
+                ca_cert_path: None,
+                ca_cert_blob: None,
+                system_ca_certs: true,
+                method: EapMethod::Peap,
+                phase2: Phase2::Mschapv2,
+                private_key_path: None,
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: None,
+                client_cert_blob: None,
+            },
+        };
+        assert!(validate_wifi_security(&eap).is_err());
+    }
+
+    #[test]
+    fn test_validate_wifi_security_eap_192bit_valid_path() {
+        let eap = WifiSecurity::Wpa3Eap192bit {
+            opts: EapOptions {
+                identity: "user@example.com".to_string(),
+                password: String::new(),
+                anonymous_identity: None,
+                domain_suffix_match: Some("example.com".to_string()),
+                ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
+                ca_cert_blob: None,
+                system_ca_certs: false,
+                method: EapMethod::Tls,
+                phase2: Phase2::Mschapv2,
+                private_key_path: Some("file:///etc/ssl/private/client.pem".to_string()),
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: Some("file:///etc/ssl/certs/client.pem".to_string()),
+                client_cert_blob: None,
+            },
+        };
+        assert!(validate_wifi_security(&eap).is_ok());
+    }
+
+    #[test]
+    fn test_validate_wifi_security_eap_192bit_valid_blob() {
+        let eap = WifiSecurity::Wpa3Eap192bit {
+            opts: EapOptions {
+                identity: "user@example.com".to_string(),
+                password: String::new(),
+                anonymous_identity: None,
+                domain_suffix_match: Some("example.com".to_string()),
+                ca_cert_path: None,
+                ca_cert_blob: Some(b"ca_cert_blob".to_vec()),
+                system_ca_certs: false,
+                method: EapMethod::Tls,
+                phase2: Phase2::Mschapv2,
+                private_key_path: None,
+                private_key_blob: Some(b"private_key_blob".to_vec()),
+                private_key_password: None,
+                client_cert_path: None,
+                client_cert_blob: Some(b"client_cert_blob".to_vec()),
+            },
+        };
+        assert!(validate_wifi_security(&eap).is_ok());
+    }
+
+    #[test]
+    fn test_validate_wifi_security_eap_192bit_path_blob() {
+        let eap = WifiSecurity::Wpa3Eap192bit {
+            opts: EapOptions {
+                identity: "user@example.com".to_string(),
+                password: String::new(),
+                anonymous_identity: None,
+                domain_suffix_match: Some("example.com".to_string()),
+                ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
+                ca_cert_blob: Some(b"ca_cert_blob".to_vec()),
+                system_ca_certs: false,
+                method: EapMethod::Tls,
+                phase2: Phase2::Mschapv2,
+                private_key_path: Some("file:///etc/ssl/private/client.pem".to_string()),
+                private_key_blob: Some(b"private_key_blob".to_vec()),
+                private_key_password: None,
+                client_cert_path: Some("file:///etc/ssl/certs/client.pem".to_string()),
+                client_cert_blob: Some(b"client_cert_blob".to_vec()),
+            },
+        };
+        assert!(validate_wifi_security(&eap).is_err());
+    }
+
+    #[test]
+    fn test_validate_wifi_security_eap_tls_invalid_private_key() {
+        let eap = WifiSecurity::WpaEap {
+            opts: EapOptions {
+                identity: "user@example.com".to_string(),
+                password: String::new(),
+                anonymous_identity: None,
+                domain_suffix_match: Some("example.com".to_string()),
+                ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
+                ca_cert_blob: None,
+                system_ca_certs: false,
+                method: EapMethod::Tls,
+                phase2: Phase2::Mschapv2,
+                private_key_path: Some("/etc/ssl/private/client.pem".to_string()),
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: Some("file:///etc/ssl/certs/client.pem".to_string()),
+                client_cert_blob: None,
+            },
+        };
+        assert!(validate_wifi_security(&eap).is_err());
+    }
+
+    #[test]
+    fn test_validate_wifi_security_eap_tls_invalid_client_cert() {
+        let eap = WifiSecurity::WpaEap {
+            opts: EapOptions {
+                identity: "user@example.com".to_string(),
+                password: String::new(),
+                anonymous_identity: None,
+                domain_suffix_match: Some("example.com".to_string()),
+                ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
+                ca_cert_blob: None,
+                system_ca_certs: false,
+                method: EapMethod::Tls,
+                phase2: Phase2::Mschapv2,
+                private_key_path: Some("file:///etc/ssl/private/client.pem".to_string()),
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: Some("/etc/ssl/certs/client.pem".to_string()),
+                client_cert_blob: None,
+            },
+        };
+        assert!(validate_wifi_security(&eap).is_err());
+    }
+
+    #[test]
+    fn test_validate_wifi_security_eap_tls_missing_private_key() {
+        let eap = WifiSecurity::WpaEap {
+            opts: EapOptions {
+                identity: "user@example.com".to_string(),
+                password: String::new(),
+                anonymous_identity: None,
+                domain_suffix_match: Some("example.com".to_string()),
+                ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
+                ca_cert_blob: None,
+                system_ca_certs: false,
+                method: EapMethod::Tls,
+                phase2: Phase2::Mschapv2,
+                private_key_path: None,
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: Some("file:///etc/ssl/certs/client.pem".to_string()),
+                client_cert_blob: None,
+            },
+        };
+        assert!(validate_wifi_security(&eap).is_err());
+    }
+
+    #[test]
+    fn test_validate_wifi_security_eap_tls_missing_client_cert() {
+        let eap = WifiSecurity::WpaEap {
+            opts: EapOptions {
+                identity: "user@example.com".to_string(),
+                password: String::new(),
+                anonymous_identity: None,
+                domain_suffix_match: Some("example.com".to_string()),
+                ca_cert_path: Some("file:///etc/ssl/certs/ca.pem".to_string()),
+                ca_cert_blob: None,
+                system_ca_certs: false,
+                method: EapMethod::Tls,
+                phase2: Phase2::Mschapv2,
+                private_key_path: Some("file:///etc/ssl/private/client.pem".to_string()),
+                private_key_blob: None,
+                private_key_password: None,
+                client_cert_path: None,
+                client_cert_blob: None,
             },
         };
         assert!(validate_wifi_security(&eap).is_err());

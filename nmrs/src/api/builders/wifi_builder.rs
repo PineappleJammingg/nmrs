@@ -173,11 +173,24 @@ impl WifiConnectionBuilder {
 
     /// Configures WPA-EAP (Enterprise) security with 802.1X authentication.
     ///
-    /// Supports PEAP and TTLS methods with various inner authentication protocols.
+    /// Supports PEAP, TTLS, and TLS methods with various inner authentication protocols.
     #[must_use]
-    pub fn wpa_eap(mut self, opts: models::EapOptions) -> Self {
+    pub fn wpa_eap(self, opts: models::EapOptions) -> Self {
+        self.wpa_eap_shared("wpa-eap", opts)
+    }
+
+    /// Configures WPA3-EAP (Enterprise) with 192bit security with 802.1X authentication.
+    ///
+    /// Supports only EAP-TLS.
+    #[must_use]
+    pub fn wpa3_eap_192_bit(self, opts: models::EapOptions) -> Self {
+        self.wpa_eap_shared("wpa-eap-suite-b-192", opts)
+    }
+
+    #[must_use]
+    fn wpa_eap_shared(mut self, key_mgmt: &'static str, opts: models::EapOptions) -> Self {
         let mut security = HashMap::new();
-        security.insert("key-mgmt", Value::from("wpa-eap"));
+        security.insert("key-mgmt", Value::from(key_mgmt));
         security.insert("auth-alg", Value::from("open"));
 
         self.inner = self
@@ -190,26 +203,49 @@ impl WifiConnectionBuilder {
         let eap_str = match opts.method {
             EapMethod::Peap => "peap",
             EapMethod::Ttls => "ttls",
+            EapMethod::Tls => "tls",
         };
         e1x.insert("eap", Self::string_array(&[eap_str]));
         e1x.insert("identity", Value::from(opts.identity));
-        e1x.insert("password", Value::from(opts.password));
 
-        if let Some(ai) = opts.anonymous_identity {
-            e1x.insert("anonymous-identity", Value::from(ai));
+        match opts.method {
+            EapMethod::Peap | EapMethod::Ttls => {
+                e1x.insert("password", Value::from(opts.password));
+
+                if let Some(ai) = opts.anonymous_identity {
+                    e1x.insert("anonymous-identity", Value::from(ai));
+                }
+
+                let p2 = match opts.phase2 {
+                    models::Phase2::Mschapv2 => "mschapv2",
+                    models::Phase2::Pap => "pap",
+                };
+                e1x.insert("phase2-auth", Value::from(p2));
+            }
+            EapMethod::Tls => {
+                if let Some(cert) =
+                    Self::path_or_blob("private_key", opts.private_key_path, opts.private_key_blob)
+                {
+                    e1x.insert("private-key", cert);
+                }
+
+                if let Some(password) = opts.private_key_password {
+                    e1x.insert("private-key-password", Value::from(password));
+                }
+
+                if let Some(cert) =
+                    Self::path_or_blob("client_cert", opts.client_cert_path, opts.client_cert_blob)
+                {
+                    e1x.insert("client-cert", cert);
+                }
+            }
         }
-
-        let p2 = match opts.phase2 {
-            models::Phase2::Mschapv2 => "mschapv2",
-            models::Phase2::Pap => "pap",
-        };
-        e1x.insert("phase2-auth", Value::from(p2));
 
         if opts.system_ca_certs {
             e1x.insert("system-ca-certs", Value::from(true));
         }
-        if let Some(cert) = opts.ca_cert_path {
-            e1x.insert("ca-cert", Value::from(cert));
+        if let Some(cert) = Self::path_or_blob("ca_cert", opts.ca_cert_path, opts.ca_cert_blob) {
+            e1x.insert("ca-cert", cert);
         }
         if let Some(dom) = opts.domain_suffix_match {
             e1x.insert("domain-suffix-match", Value::from(dom));
@@ -372,6 +408,29 @@ impl WifiConnectionBuilder {
         let vals: Vec<String> = xs.iter().map(|s| s.to_string()).collect();
         Value::from(vals)
     }
+
+    fn path_or_blob(
+        attribute: &str,
+        path: Option<String>,
+        blob: Option<Vec<u8>>,
+    ) -> Option<Value<'static>> {
+        match (path, blob) {
+            (None, None) => None,
+            (Some(path), None) => Some(Self::path(path)),
+            (None, Some(blob)) => Some(Self::blob(blob)),
+            (Some(_), Some(_)) => {
+                panic!("Cannot specify both {attribute}_path and {attribute}_blob.");
+            }
+        }
+    }
+
+    fn path(value: String) -> Value<'static> {
+        Value::from(value)
+    }
+
+    fn blob(value: Vec<u8>) -> Value<'static> {
+        Value::from(value)
+    }
 }
 
 #[cfg(test)]
@@ -439,9 +498,15 @@ mod tests {
             anonymous_identity: Some("anon@example.com".into()),
             domain_suffix_match: Some("example.com".into()),
             ca_cert_path: None,
+            ca_cert_blob: None,
             system_ca_certs: true,
             method: EapMethod::Peap,
             phase2: Phase2::Mschapv2,
+            private_key_path: None,
+            private_key_blob: None,
+            private_key_password: None,
+            client_cert_path: None,
+            client_cert_blob: None,
         };
 
         let settings = WifiConnectionBuilder::new("Enterprise")

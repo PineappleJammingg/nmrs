@@ -188,9 +188,40 @@ fn wifi_security_eap() {
             anonymous_identity: None,
             domain_suffix_match: None,
             ca_cert_path: None,
+            ca_cert_blob: None,
             system_ca_certs: false,
             method: EapMethod::Peap,
             phase2: Phase2::Mschapv2,
+            private_key_path: None,
+            private_key_blob: None,
+            private_key_password: None,
+            client_cert_path: None,
+            client_cert_blob: None,
+        },
+    };
+    assert!(eap.secured());
+    assert!(!eap.is_psk());
+    assert!(eap.is_eap());
+}
+
+#[test]
+fn wifi_security_eap_192bit() {
+    let eap = WifiSecurity::Wpa3Eap192bit {
+        opts: EapOptions {
+            identity: "user@example.com".into(),
+            password: "".into(),
+            anonymous_identity: None,
+            domain_suffix_match: None,
+            ca_cert_path: Some("file:///etc/ssl/certs/ca.crt".into()),
+            ca_cert_blob: None,
+            system_ca_certs: false,
+            method: EapMethod::Tls,
+            phase2: Phase2::Mschapv2,
+            private_key_path: Some("file:///etc/ssl/private/client.key".into()),
+            private_key_blob: None,
+            private_key_password: Some("password".into()),
+            client_cert_path: Some("file:///etc/ssl/certs/client.crt".into()),
+            client_cert_blob: None,
         },
     };
     assert!(eap.secured());
@@ -911,6 +942,106 @@ fn test_eap_options_builder_ttls_pap() {
 }
 
 #[test]
+fn test_eap_options_builder_tls() {
+    let opts = EapOptions::builder()
+        .identity("student@university.edu")
+        .method(EapMethod::Tls)
+        .ca_cert_path("file:///etc/ssl/certs/ca.pem")
+        .private_key_path("file:///etc/ssl/private/client.key")
+        .private_key_password("password")
+        .client_cert_path("file:///etc/ssl/certs/client.pem")
+        .build()
+        .unwrap();
+
+    assert_eq!(opts.method, EapMethod::Tls);
+    assert_eq!(
+        opts.ca_cert_path,
+        Some("file:///etc/ssl/certs/ca.pem".into())
+    );
+    assert_eq!(
+        opts.private_key_path,
+        Some("file:///etc/ssl/private/client.key".into())
+    );
+    assert_eq!(opts.private_key_password, Some("password".into()));
+    assert_eq!(
+        opts.client_cert_path,
+        Some("file:///etc/ssl/certs/client.pem".into())
+    );
+}
+
+#[test]
+fn test_eap_options_builder_path_blob_ca_cert_path() {
+    let opts = EapOptions::builder()
+        .identity("student@university.edu")
+        .method(EapMethod::Tls)
+        .ca_cert_path("file:///etc/ssl/certs/ca.pem")
+        .ca_cert_blob(vec![1])
+        .private_key_path("file:///etc/ssl/private/client.key")
+        .private_key_password("password")
+        .client_cert_path("file:///etc/ssl/certs/client.pem")
+        .build()
+        .unwrap();
+
+    assert_eq!(opts.method, EapMethod::Tls);
+    assert_eq!(opts.ca_cert_path, None);
+    assert_eq!(opts.ca_cert_blob, Some(vec![1]));
+}
+
+#[test]
+fn test_eap_options_builder_path_blob_ca_cert() {
+    let opts = EapOptions::builder()
+        .identity("student@university.edu")
+        .method(EapMethod::Tls)
+        .ca_cert_path("file:///etc/ssl/certs/ca.pem")
+        .ca_cert_blob(vec![1])
+        .private_key_path("file:///etc/ssl/private/client.key")
+        .private_key_password("password")
+        .client_cert_path("file:///etc/ssl/certs/client.pem")
+        .build()
+        .unwrap();
+
+    assert_eq!(opts.method, EapMethod::Tls);
+    assert_eq!(opts.ca_cert_path, None);
+    assert_eq!(opts.ca_cert_blob, Some(vec![1]));
+}
+
+#[test]
+fn test_eap_options_builder_path_blob_private_key() {
+    let opts = EapOptions::builder()
+        .identity("student@university.edu")
+        .method(EapMethod::Tls)
+        .ca_cert_path("file:///etc/ssl/certs/ca.pem")
+        .private_key_path("file:///etc/ssl/private/client.key")
+        .private_key_blob(vec![1])
+        .private_key_password("password")
+        .client_cert_path("file:///etc/ssl/certs/client.pem")
+        .build()
+        .unwrap();
+
+    assert_eq!(opts.method, EapMethod::Tls);
+    assert_eq!(opts.private_key_path, None);
+    assert_eq!(opts.private_key_blob, Some(vec![1]));
+}
+
+#[test]
+fn test_eap_options_builder_path_blob_client_cert() {
+    let opts = EapOptions::builder()
+        .identity("student@university.edu")
+        .method(EapMethod::Tls)
+        .ca_cert_path("file:///etc/ssl/certs/ca.pem")
+        .private_key_path("file:///etc/ssl/private/client.key")
+        .private_key_password("password")
+        .client_cert_path("file:///etc/ssl/certs/client.pem")
+        .client_cert_blob(vec![1])
+        .build()
+        .unwrap();
+
+    assert_eq!(opts.method, EapMethod::Tls);
+    assert_eq!(opts.client_cert_path, None);
+    assert_eq!(opts.client_cert_blob, Some(vec![1]));
+}
+
+#[test]
 fn test_eap_options_builder_missing_identity() {
     let err = EapOptions::builder()
         .password("password")
@@ -955,6 +1086,26 @@ fn test_eap_options_builder_missing_phase2() {
 }
 
 #[test]
+fn test_eap_options_builder_equivalence_to_new() {
+    let opts_new = EapOptions::new("user@example.com", "password")
+        .with_method(EapMethod::Peap)
+        .with_phase2(Phase2::Mschapv2);
+
+    let opts_builder = EapOptions::builder()
+        .identity("user@example.com")
+        .password("password")
+        .method(EapMethod::Peap)
+        .phase2(Phase2::Mschapv2)
+        .build()
+        .unwrap();
+
+    assert_eq!(opts_new.identity, opts_builder.identity);
+    assert_eq!(opts_new.password, opts_builder.password);
+    assert_eq!(opts_new.method, opts_builder.method);
+    assert_eq!(opts_new.phase2, opts_builder.phase2);
+}
+
+#[test]
 fn test_vpn_credentials_builder_equivalence_to_new() {
     let peer = WireGuardPeer::new(
         "public_key",
@@ -987,26 +1138,6 @@ fn test_vpn_credentials_builder_equivalence_to_new() {
     assert_eq!(creds_new.private_key, creds_builder.private_key);
     assert_eq!(creds_new.address, creds_builder.address);
     assert_eq!(creds_new.peers.len(), creds_builder.peers.len());
-}
-
-#[test]
-fn test_eap_options_builder_equivalence_to_new() {
-    let opts_new = EapOptions::new("user@example.com", "password")
-        .with_method(EapMethod::Peap)
-        .with_phase2(Phase2::Mschapv2);
-
-    let opts_builder = EapOptions::builder()
-        .identity("user@example.com")
-        .password("password")
-        .method(EapMethod::Peap)
-        .phase2(Phase2::Mschapv2)
-        .build()
-        .unwrap();
-
-    assert_eq!(opts_new.identity, opts_builder.identity);
-    assert_eq!(opts_new.password, opts_builder.password);
-    assert_eq!(opts_new.method, opts_builder.method);
-    assert_eq!(opts_new.phase2, opts_builder.phase2);
 }
 
 #[test]
