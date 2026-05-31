@@ -105,6 +105,8 @@ To follow and/or discuss the development of nmrs, you can join the [public Disco
 
 # Roadmap / Implementation Status
 
+If something is missing that you'd like to see, please file a PR or issue, adding it to this roadmap.
+
 ### Wi-Fi
 
 - [x] Scan and list Wi-Fi networks
