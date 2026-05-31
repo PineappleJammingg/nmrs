@@ -103,70 +103,72 @@ async fn main() -> nmrs::Result<()> {
 
 To follow and/or discuss the development of nmrs, you can join the [public Discord channel](https://discord.gg/Sk3VfrHrN4).
 
-<details>
-<summary><strong>Roadmap / Implementation Status</strong></summary>
+# Roadmap / Implementation Status
 
-### Devices
+### Wi-Fi
 
-- [x] Generic  
-- [x] Wireless  
-- [ ] Any  
-- [x] Wired  
-- [ ] ADSL  
-- [x] Bluetooth  
-- [ ] Bond  
-- [ ] Bridge  
-- [ ] Dummy  
-- [ ] HSR *(NetworkManager ≥ 1.46)*  
-- [ ] Infiniband  
-- [ ] IP Tunnel  
-- [ ] IPVLAN *(NetworkManager ≥ 1.52)*  
-- [ ] Lowpan  
-- [x] Loopback  
-- [ ] MACsec  
-- [ ] MACVLAN  
-- [ ] Modem  
-- [ ] OLPC Mesh  
-- [ ] OVS Bridge  
-- [ ] OVS Interface  
-- [ ] OVS Port  
-- [ ] PPP  
-- [ ] Statistics  
-- [ ] Team  
-- [ ] TUN/TAP  
-- [ ] VETH  
-- [x] VLAN  
-- [ ] VRF  
-- [ ] VXLAN  
-- [ ] Wi-Fi P2P  
-- [ ] WiMAX  
-- [X] WireGuard  
-- [ ] WPAN  
+- [x] Scan and list Wi-Fi networks
+- [x] List individual access points with BSSID, frequency, signal, and security flags
+- [x] Per-interface Wi-Fi scoping with `nm.wifi("wlan0")`
+- [x] Open networks
+- [x] WPA-PSK personal networks
+- [x] WPA-EAP PEAP/MSCHAPv2
+- [x] WPA-EAP TTLS/PAP
+- [x] EAP-TLS with certificate/key paths or blobs
+- [x] WPA3-Enterprise 192-bit mode
+- [x] Hidden networks
+- [x] BSSID-specific connection
+- [x] Race-free `try_connect` / `try_connect_to_bssid`
+- [ ] Wi-Fi P2P connection management
 
-### Configurations
+### Wired, Bluetooth, And VLAN
 
-- [x] IPv4  
-- [x] IPv6  
-- [x] DHCPv4  
-- [x] DHCPv6  
+- [x] Ethernet DHCP connections
+- [x] Bluetooth PAN/DUN device discovery and connection
+- [x] VLAN profile builder and validation
+- [x] Loopback device detection
+- [ ] Bond profile builder
+- [ ] Bridge profile builder
+- [ ] TUN/TAP profile builder
+- [ ] MACVLAN / MACsec / VRF / VXLAN profile builders
 
-### Core Interfaces
+### VPN
 
-- [x] NetworkManager *(partial)*  
-- [x] Device  
-- [x] Access Point  
-- [x] Active Connection  
-- [x] Settings  
-- [x] Settings Connection  
-- [x] Agent Manager  
-- [ ] Checkpoint  
-- [ ] DNS Manager  
-- [ ] PPP  
-- [x] Secret Agent  
-- [x] VPN Connection (WireGuard + OpenVPN)  
-- [x] General Plugin VPN (OpenConnect, strongSwan, PPTP, L2TP, etc.)  
-- [ ] Wi-Fi P2P  
-- [ ] WiMAX NSP  
+- [x] WireGuard profile builder and connection support
+- [x] OpenVPN profile builder
+- [x] `.ovpn` import support
+- [x] Saved VPN discovery for WireGuard and plugin VPNs
+- [x] Connect/disconnect saved VPNs by UUID or name
+- [x] Active VPN listing and connection details
+- [x] Generic plugin VPN detection (OpenConnect, strongSwan, PPTP, L2TP, etc.)
+- [ ] Builders/importers for non-OpenVPN plugin VPN profiles
+
+### Profiles, Radio, And Connectivity
+
+- [x] Saved connection listing, raw access, decoded summaries, update, delete, and reload
+- [x] Profile reuse for saved Wi-Fi and Ethernet connections
+- [x] Secret agent for NetworkManager credential prompts
+- [x] Real-time network and device monitoring
+- [x] Wi-Fi, WWAN, Bluetooth, and aggregate airplane-mode radio state
+- [x] Connectivity state, forced connectivity checks, and captive-portal URL detection
+- [x] IPv4, IPv6, DHCPv4, and DHCPv6 settings
+
+### Device And D-Bus Surface
+
+- [x] NetworkManager facade
+- [x] Device enumeration and typed device models for Ethernet, Wi-Fi, Bluetooth, VLAN, Loopback, and Wi-Fi P2P
+- [x] Device metadata registry for Bond, Bridge, TUN, WireGuard, and other known NetworkManager type codes
+- [x] Access Point
+- [x] Active Connection
+- [x] Settings
+- [x] Settings Connection
+- [x] Agent Manager
+- [x] VPN Connection
+- [ ] Checkpoint
+- [ ] DNS Manager
+- [ ] PPP
+- [ ] Modem / WWAN connection management
+- [ ] WiMAX NSP
 
 </details>
 
