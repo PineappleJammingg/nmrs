@@ -1186,14 +1186,9 @@ impl NetworkManager {
     /// let nm = NetworkManager::new().await?;
     ///
     /// if let Some(uuid) = nm.get_saved_connection_uuid("HomeWiFi").await? {
-    ///     nm.update_saved_connection(
-    ///         &uuid,
-    ///         SettingsPatch {
-    ///             autoconnect: Some(false),
-    ///             ..Default::default()
-    ///         },
-    ///     )
-    ///     .await?;
+    ///     let mut patch = SettingsPatch::default();
+    ///     patch.autoconnect = Some(false);
+    ///     nm.update_saved_connection(&uuid, patch).await?;
     /// }
     /// # Ok(())
     /// # }

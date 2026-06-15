@@ -130,14 +130,9 @@ use nmrs::{NetworkManager, SettingsPatch};
 let nm = NetworkManager::new().await?;
 
 if let Some(uuid) = nm.get_saved_connection_uuid("HomeWiFi").await? {
-    nm.update_saved_connection(
-        &uuid,
-        SettingsPatch {
-            autoconnect: Some(false),
-            ..Default::default()
-        },
-    )
-    .await?;
+    let mut patch = SettingsPatch::default();
+    patch.autoconnect = Some(false);
+    nm.update_saved_connection(&uuid, patch).await?;
 }
 ```
 
@@ -156,14 +151,9 @@ let target = "HomeWiFi";
 
 for saved in nm.list_saved_connections().await? {
     if saved.id == target {
-        nm.update_saved_connection(
-            &saved.uuid,
-            SettingsPatch {
-                autoconnect: Some(!saved.autoconnect),
-                ..Default::default()
-            },
-        )
-        .await?;
+        let mut patch = SettingsPatch::default();
+        patch.autoconnect = Some(!saved.autoconnect);
+        nm.update_saved_connection(&saved.uuid, patch).await?;
     }
 }
 ```
