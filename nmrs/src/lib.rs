@@ -361,6 +361,8 @@ pub mod builders {
 /// - [`NetworkInfo`] — Detailed network information returned by `show_details`
 /// - [`WifiDevice`] — Wi-Fi-specific device summary
 /// - [`WiredDevice`] — Ethernet-specific device summary
+/// - [`ActiveConnection`] — Typed active connection summary
+/// - [`NetworkSnapshot`] — Point-in-time applet state snapshot
 /// - [`NetworkEvent`] / [`SettingsChange`] — Refresh-oriented monitoring events
 /// - [`BluetoothDevice`] — Discovered Bluetooth peer
 /// - [`SavedConnection`] / [`SavedConnectionBrief`] — Saved profile snapshots
@@ -410,16 +412,18 @@ pub mod models {
 // Re-export commonly used types at crate root for convenience
 #[allow(deprecated)]
 pub use api::models::{
-    AccessPoint, ActiveConnectionState, AirplaneModeState, ApMode, BluetoothDevice,
-    BluetoothIdentity, BluetoothNetworkRole, ConnectType, ConnectionError, ConnectionOptions,
-    ConnectionStateReason, ConnectivityReport, ConnectivityState, Device, DeviceState, DeviceType,
-    EapMethod, EapOptions, Network, NetworkEvent, NetworkEventStream, NetworkInfo, OpenVpnAuthType,
-    OpenVpnCompression, OpenVpnConfig, OpenVpnConnectionType, OpenVpnProxy, Phase2, RadioState,
-    SavedConnection, SavedConnectionBrief, SecurityFeatures, SettingsChange, SettingsEventStream,
-    SettingsPatch, SettingsSummary, StateReason, TimeoutConfig, VlanConfig, VpnConfig,
-    VpnConfiguration, VpnConnection, VpnConnectionInfo, VpnCredentials, VpnDetails, VpnKind,
-    VpnRoute, VpnSecretFlags, VpnType, WifiDevice, WifiKeyMgmt, WifiSecurity, WifiSecuritySummary,
-    WireGuardConfig, WireGuardPeer, WiredDevice, connection_state_reason_to_error, reason_to_error,
+    AccessPoint, ActiveConnection, ActiveConnectionState, ActiveOtherConnection,
+    ActiveVpnConnection, ActiveWifiConnection, ActiveWiredConnection, AirplaneModeState, ApMode,
+    BluetoothDevice, BluetoothIdentity, BluetoothNetworkRole, ConnectType, ConnectionError,
+    ConnectionOptions, ConnectionStateReason, ConnectivityReport, ConnectivityState, Device,
+    DeviceState, DeviceType, EapMethod, EapOptions, Network, NetworkEvent, NetworkEventStream,
+    NetworkInfo, NetworkSnapshot, OpenVpnAuthType, OpenVpnCompression, OpenVpnConfig,
+    OpenVpnConnectionType, OpenVpnProxy, Phase2, RadioState, SavedConnection, SavedConnectionBrief,
+    SecurityFeatures, SettingsChange, SettingsEventStream, SettingsPatch, SettingsSummary,
+    StateReason, TimeoutConfig, VlanConfig, VpnConfig, VpnConfiguration, VpnConnection,
+    VpnConnectionInfo, VpnCredentials, VpnDetails, VpnKind, VpnRoute, VpnSecretFlags, VpnType,
+    WifiDevice, WifiKeyMgmt, WifiSecurity, WifiSecuritySummary, WireGuardConfig, WireGuardPeer,
+    WiredDevice, connection_state_reason_to_error, reason_to_error,
 };
 pub use api::network_manager::NetworkManager;
 pub use api::wifi_scope::WifiScope;

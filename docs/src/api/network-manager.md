@@ -108,6 +108,8 @@ let config = nm.timeout_config();
 | `list_wired_device_details()` | `Result<Vec<WiredDevice>>` | List Ethernet devices with link speed, active connection id, and IPs |
 | `get_device_by_interface(name)` | `Result<OwnedObjectPath>` | Find device by interface name |
 | `is_connecting()` | `Result<bool>` | Check if any device is connecting |
+| `list_active_connections()` | `Result<Vec<ActiveConnection>>` | List typed active wired, Wi-Fi, VPN, and other connections |
+| `snapshot()` | `Result<NetworkSnapshot>` | Read point-in-time applet state after a `NetworkEvent` |
 | `network_events()` | `Result<NetworkEventStream>` | Unified refresh-trigger stream for GUI state updates |
 | `settings_events()` | `Result<SettingsEventStream>` | Saved connection add/remove/update stream |
 

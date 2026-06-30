@@ -12,6 +12,9 @@ All notable changes to the `nmrs` crate will be documented in this file.
 - `NetworkEvent`, `SettingsChange`, `NetworkManager::network_events()`, and
   `NetworkManager::settings_events()` provide stream-based refresh triggers for
   GUI network applets. ([#455](https://github.com/networkmanager-rs/nmrs/pull/455))
+- `NetworkSnapshot`, typed `ActiveConnection` models,
+  `NetworkManager::snapshot()`, and `NetworkManager::list_active_connections()`
+  provide point-in-time state reads for applet refreshes after `NetworkEvent`. ([#456](https://github.com/networkmanager-rs/nmrs/pull/456))
 - Secret-agent lifecycle docs now recommend one long-lived applet registration,
   keeping `SecretAgentHandle` alive, and calling
   `SecretAgentHandle::reregister()` after NetworkManager restarts. ([#454](https://github.com/networkmanager-rs/nmrs/pull/454))

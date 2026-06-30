@@ -7,11 +7,16 @@ use zvariant::OwnedValue;
 
 use crate::Result;
 use crate::api::models::access_point::AccessPoint;
+use crate::api::models::snapshot::{
+    saved_vpn_profiles as filter_saved_vpn_profiles,
+    saved_wifi_profiles as filter_saved_wifi_profiles,
+};
 use crate::api::models::{
-    AirplaneModeState, Device, Network, NetworkInfo, RadioState, SavedConnection,
-    SavedConnectionBrief, SettingsPatch, WifiDevice, WifiSecurity, WiredDevice,
+    ActiveConnection, AirplaneModeState, Device, Network, NetworkInfo, NetworkSnapshot, RadioState,
+    SavedConnection, SavedConnectionBrief, SettingsPatch, WifiDevice, WifiSecurity, WiredDevice,
 };
 use crate::api::wifi_scope::WifiScope;
+use crate::core::active_connection as active_connections;
 use crate::core::airplane;
 use crate::core::bluetooth::connect_bluetooth;
 use crate::core::connection::{
@@ -257,6 +262,49 @@ impl NetworkManager {
     /// assigned IP addresses when connected.
     pub async fn list_wired_device_details(&self) -> Result<Vec<WiredDevice>> {
         list_wired_device_details(&self.conn).await
+    }
+
+    /// Lists active NetworkManager connections classified for UI rendering.
+    ///
+    /// Connections are returned as typed variants for wired, Wi-Fi, VPN, or
+    /// `Other` when the active connection type is not modeled by `nmrs`.
+    pub async fn list_active_connections(&self) -> Result<Vec<ActiveConnection>> {
+        active_connections::list_active_connections(&self.conn).await
+    }
+
+    /// Reads a point-in-time snapshot of NetworkManager state for GUI applets.
+    ///
+    /// This call performs direct reads and does not use a background cache.
+    /// After receiving a [`NetworkEvent`](crate::NetworkEvent), callers can
+    /// invoke `snapshot()` to refresh their complete local view.
+    pub async fn snapshot(&self) -> Result<NetworkSnapshot> {
+        let wifi = self.wifi_state().await?;
+        let wwan = self.wwan_state().await?;
+        let bluetooth = self.bluetooth_radio_state().await?;
+        let airplane_mode = self.airplane_mode_state().await?;
+        let connectivity = self.connectivity_report().await?;
+        let active_connections = self.list_active_connections().await?;
+        let access_points = self.list_access_points(None).await?;
+        let saved_connections = self.list_saved_connections().await?;
+        let saved_wifi_profiles = filter_saved_wifi_profiles(&saved_connections);
+        let saved_vpn_profiles = filter_saved_vpn_profiles(&saved_connections);
+        let wifi_devices = self.list_wifi_devices().await?;
+        let wired_devices = self.list_wired_devices().await?;
+
+        Ok(NetworkSnapshot {
+            wifi,
+            wwan,
+            bluetooth,
+            airplane_mode,
+            connectivity,
+            active_connections,
+            access_points,
+            saved_connections,
+            saved_wifi_profiles,
+            saved_vpn_profiles,
+            wifi_devices,
+            wired_devices,
+        })
     }
 
     /// Lists all visible Wi-Fi networks.

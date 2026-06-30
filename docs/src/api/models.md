@@ -154,6 +154,41 @@ Methods: `interface()`, `scan()`, `list_networks()`, `list_access_points()`, `co
 
 ## Event Models
 
+### NetworkSnapshot
+
+Point-in-time applet state returned by `snapshot()`.
+
+```rust
+pub struct NetworkSnapshot {
+    pub wifi: RadioState,
+    pub wwan: RadioState,
+    pub bluetooth: RadioState,
+    pub airplane_mode: AirplaneModeState,
+    pub connectivity: ConnectivityReport,
+    pub active_connections: Vec<ActiveConnection>,
+    pub access_points: Vec<AccessPoint>,
+    pub saved_connections: Vec<SavedConnection>,
+    pub saved_wifi_profiles: Vec<SavedConnection>,
+    pub saved_vpn_profiles: Vec<SavedConnection>,
+    pub wifi_devices: Vec<WifiDevice>,
+    pub wired_devices: Vec<Device>,
+}
+```
+
+### ActiveConnection
+
+Typed active connections returned by `list_active_connections()` and nested in
+`NetworkSnapshot`.
+
+```rust
+pub enum ActiveConnection {
+    Wired(ActiveWiredConnection),
+    Wifi(ActiveWifiConnection),
+    Vpn(ActiveVpnConnection),
+    Other(ActiveOtherConnection),
+}
+```
+
 ### NetworkEvent
 
 Refresh-oriented events returned by `network_events()`.

@@ -3,6 +3,7 @@
 //! This module contains the internal implementation details for managing
 //! network connections, devices, scanning, and state monitoring.
 
+pub(crate) mod active_connection;
 pub(crate) mod airplane;
 pub(crate) mod bluetooth;
 pub(crate) mod connection;
