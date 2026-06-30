@@ -1,7 +1,31 @@
 use serde::{Deserialize, Serialize};
 
-use super::access_point::SecurityFeatures;
+use super::access_point::{AccessPoint, SecurityFeatures};
 use super::error::ConnectionError;
+use super::saved_connection::SavedConnectionBrief;
+
+/// Visible Wi-Fi access points grouped by interface and SSID for applet UIs.
+///
+/// A group preserves every BSSID seen for one `(interface, ssid)` pair while
+/// exposing the strongest AP as the representative row.
+#[non_exhaustive]
+#[derive(Debug, Clone)]
+pub struct WifiNetworkGroup {
+    /// SSID shared by every access point in this group.
+    pub ssid: String,
+    /// Wi-Fi interface that sees this group.
+    pub interface: String,
+    /// Strongest AP in the group, preferring the active BSSID on ties.
+    pub strongest: AccessPoint,
+    /// All APs in the group, sorted strongest first.
+    pub access_points: Vec<AccessPoint>,
+    /// Saved Wi-Fi profiles that match this visible group.
+    pub saved_profiles: Vec<SavedConnectionBrief>,
+    /// `true` when a typed active Wi-Fi connection matches this group.
+    pub active: bool,
+    /// `true` when at least one saved profile matches this visible group.
+    pub known: bool,
+}
 
 /// Represents a Wi-Fi network discovered during a scan.
 ///

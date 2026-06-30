@@ -95,14 +95,43 @@ When the same SSID is broadcast by multiple access points, use `connect_to_bssid
 let scope = nm.wifi("wlan0");
 
 let aps = scope.list_access_points().await?;
-if let Some(best) = aps.iter().max_by_key(|ap| ap.strength.unwrap_or(0)) {
+if let Some(best) = aps.iter().max_by_key(|ap| ap.strength) {
     scope.connect_to_bssid(
         &best.ssid,
-        &best.hwaddress.as_deref().unwrap_or_default(),
+        &best.bssid,
         WifiSecurity::WpaPsk { psk: "password".into() },
     ).await?;
 }
 ```
+
+## Snapshot Wi-Fi Groups
+
+For applet-style UIs, `NetworkSnapshot::wifi_groups()` groups visible APs by
+`(interface, ssid)`. This keeps duplicate SSIDs on different radios separate,
+preserves every BSSID in the group, and attaches matching saved profiles.
+
+```rust
+let snapshot = nm.snapshot().await?;
+
+for group in snapshot.wifi_groups() {
+    println!(
+        "{} on {}: {}% active={} known={}",
+        group.ssid,
+        group.interface,
+        group.strongest.strength,
+        group.active,
+        group.known,
+    );
+
+    for ap in &group.access_points {
+        println!("  {} {} MHz", ap.bssid, ap.frequency_mhz);
+    }
+}
+```
+
+Saved profile matching respects optional `connection.interface-name` bindings
+and saved BSSID pins, so the same SSID can appear independently on multiple
+radios without being collapsed into one UI row.
 
 ## Per-Interface vs Global Operations
 

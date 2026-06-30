@@ -414,16 +414,17 @@ pub mod models {
 pub use api::models::{
     AccessPoint, ActiveConnection, ActiveConnectionState, ActiveOtherConnection,
     ActiveVpnConnection, ActiveWifiConnection, ActiveWiredConnection, AirplaneModeState, ApMode,
-    BluetoothDevice, BluetoothIdentity, BluetoothNetworkRole, ConnectType, ConnectionError,
-    ConnectionOptions, ConnectionStateReason, ConnectivityReport, ConnectivityState, Device,
-    DeviceState, DeviceType, EapMethod, EapOptions, Network, NetworkEvent, NetworkEventStream,
-    NetworkInfo, NetworkSnapshot, OpenVpnAuthType, OpenVpnCompression, OpenVpnConfig,
-    OpenVpnConnectionType, OpenVpnProxy, Phase2, RadioState, SavedConnection, SavedConnectionBrief,
-    SecurityFeatures, SettingsChange, SettingsEventStream, SettingsPatch, SettingsSummary,
-    StateReason, TimeoutConfig, VlanConfig, VpnConfig, VpnConfiguration, VpnConnection,
-    VpnConnectionInfo, VpnCredentials, VpnDetails, VpnKind, VpnRoute, VpnSecretFlags, VpnType,
-    WifiDevice, WifiKeyMgmt, WifiSecurity, WifiSecuritySummary, WireGuardConfig, WireGuardPeer,
-    WiredDevice, connection_state_reason_to_error, reason_to_error,
+    AppletNetworkSummary, BluetoothDevice, BluetoothIdentity, BluetoothNetworkRole, ConnectType,
+    ConnectionError, ConnectionOptions, ConnectionStateReason, ConnectivityReport,
+    ConnectivityState, Device, DeviceState, DeviceType, EapMethod, EapOptions, Network,
+    NetworkEvent, NetworkEventStream, NetworkInfo, NetworkSnapshot, OpenVpnAuthType,
+    OpenVpnCompression, OpenVpnConfig, OpenVpnConnectionType, OpenVpnProxy, Phase2, RadioState,
+    SavedConnection, SavedConnectionBrief, SavedVpnSummary, SecurityFeatures, SettingsChange,
+    SettingsEventStream, SettingsPatch, SettingsSummary, StateReason, TimeoutConfig, VlanConfig,
+    VpnConfig, VpnConfiguration, VpnConnection, VpnConnectionInfo, VpnCredentials, VpnDetails,
+    VpnKind, VpnRoute, VpnSecretFlags, VpnType, WifiDevice, WifiKeyMgmt, WifiNetworkGroup,
+    WifiSecurity, WifiSecuritySummary, WireGuardConfig, WireGuardPeer, WiredDevice,
+    connection_state_reason_to_error, reason_to_error,
 };
 pub use api::network_manager::NetworkManager;
 pub use api::wifi_scope::WifiScope;

@@ -33,7 +33,7 @@ pub use network_event::*;
 pub use openvpn::*;
 pub use radio::*;
 pub use saved_connection::*;
-pub use snapshot::NetworkSnapshot;
+pub use snapshot::{AppletNetworkSummary, NetworkSnapshot};
 pub use state_reason::*;
 pub use vlan::*;
 pub use vpn::*;

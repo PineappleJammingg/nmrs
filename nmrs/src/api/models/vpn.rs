@@ -27,6 +27,20 @@ pub enum VpnKind {
     WireGuard,
 }
 
+/// Saved VPN profile summary for applet lists.
+#[non_exhaustive]
+#[derive(Debug, Clone)]
+pub struct SavedVpnSummary {
+    /// Connection UUID.
+    pub uuid: String,
+    /// Human-visible connection id.
+    pub id: String,
+    /// VPN implementation kind, when it can be inferred from saved settings.
+    pub kind: Option<VpnKind>,
+    /// `true` when an active VPN connection has the same UUID.
+    pub active: bool,
+}
+
 /// OpenVPN authentication/connection type.
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]

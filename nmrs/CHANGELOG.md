@@ -15,6 +15,9 @@ All notable changes to the `nmrs` crate will be documented in this file.
 - `NetworkSnapshot`, typed `ActiveConnection` models,
   `NetworkManager::snapshot()`, and `NetworkManager::list_active_connections()`
   provide point-in-time state reads for applet refreshes after `NetworkEvent`. ([#456](https://github.com/networkmanager-rs/nmrs/pull/456))
+- `NetworkSnapshot::wifi_groups()`, `known_wifi_by_ssid()`, `saved_vpn_map()`,
+  and `applet_summary()` derive applet-ready Wi-Fi and VPN rows from snapshot
+  data without additional D-Bus calls. ([#458](https://github.com/networkmanager-rs/nmrs/pull/458))
 - Secret-agent lifecycle docs now recommend one long-lived applet registration,
   keeping `SecretAgentHandle` alive, and calling
   `SecretAgentHandle::reregister()` after NetworkManager restarts. ([#454](https://github.com/networkmanager-rs/nmrs/pull/454))

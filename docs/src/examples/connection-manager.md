@@ -186,6 +186,31 @@ fn read_line() -> String {
 }
 ```
 
+## Snapshot Helpers
+
+GUI connection managers can refresh from one snapshot and derive applet-ready
+rows without extra D-Bus calls:
+
+```rust
+let snapshot = nm.snapshot().await?;
+let summary = snapshot.applet_summary();
+
+for group in &summary.wifi_groups {
+    println!(
+        "{} on {}: {}% known={} active={}",
+        group.ssid,
+        group.interface,
+        group.strongest.strength,
+        group.known,
+        group.active,
+    );
+}
+
+for vpn in summary.saved_vpns.values() {
+    println!("{} active={}", vpn.id, vpn.active);
+}
+```
+
 ## Running
 
 ```bash

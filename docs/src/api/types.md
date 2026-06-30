@@ -82,6 +82,9 @@ All public methods return `nmrs::Result<T>`.
 |------|-------------|
 | `ConnectivityState` | NM connectivity: `Full`, `Portal`, `Limited`, `None`, `Unknown` |
 | `ConnectivityReport` | Full report with state, check URI, and captive portal URL |
+| `NetworkSnapshot` | Point-in-time applet state |
+| `AppletNetworkSummary` | Applet-ready summary derived from a snapshot |
+| `WifiNetworkGroup` | Visible APs grouped by interface and SSID |
 
 ## Saved Connection Types
 
@@ -89,6 +92,7 @@ All public methods return `nmrs::Result<T>`.
 |------|-------------|
 | `SavedConnection` | Full decoded saved profile |
 | `SavedConnectionBrief` | Lightweight profile (`uuid`, `id`, `type`) |
+| `SavedVpnSummary` | Lightweight saved VPN status keyed by UUID |
 | `SettingsSummary` | Decoded settings within a profile |
 | `SettingsPatch` | Partial update for `update_saved_connection` |
 

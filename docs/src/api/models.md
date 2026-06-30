@@ -175,6 +175,62 @@ pub struct NetworkSnapshot {
 }
 ```
 
+Helper methods on `NetworkSnapshot` provide applet-ready views without extra
+D-Bus reads:
+
+```rust
+let snapshot = nm.snapshot().await?;
+let groups = snapshot.wifi_groups();
+let known_wifi = snapshot.known_wifi_by_ssid();
+let saved_vpns = snapshot.saved_vpn_map();
+let applet = snapshot.applet_summary();
+```
+
+`wifi_groups()` groups access points by `(interface, ssid)`, keeps every BSSID,
+marks known networks from matching saved profiles, and marks the active group
+from typed active Wi-Fi connections.
+
+### WifiNetworkGroup
+
+```rust
+pub struct WifiNetworkGroup {
+    pub ssid: String,
+    pub interface: String,
+    pub strongest: AccessPoint,
+    pub access_points: Vec<AccessPoint>,
+    pub saved_profiles: Vec<SavedConnectionBrief>,
+    pub active: bool,
+    pub known: bool,
+}
+```
+
+### AppletNetworkSummary
+
+```rust
+pub struct AppletNetworkSummary {
+    pub active_connections: Vec<ActiveConnection>,
+    pub wifi_groups: Vec<WifiNetworkGroup>,
+    pub known_wifi: HashMap<String, Vec<SavedConnectionBrief>>,
+    pub saved_vpns: HashMap<String, SavedVpnSummary>,
+    pub connectivity: ConnectivityReport,
+    pub airplane_mode: AirplaneModeState,
+}
+```
+
+### SavedVpnSummary
+
+Saved VPN summaries returned by `NetworkSnapshot::saved_vpn_map()`, keyed by
+UUID.
+
+```rust
+pub struct SavedVpnSummary {
+    pub uuid: String,
+    pub id: String,
+    pub kind: Option<VpnKind>,
+    pub active: bool,
+}
+```
+
 ### ActiveConnection
 
 Typed active connections returned by `list_active_connections()` and nested in
