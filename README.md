@@ -108,8 +108,9 @@ To follow and/or discuss the development of nmrs, you can join the [public Disco
 
 - [cosmic-applets](https://github.com/pop-os/cosmic-applets) by [@pop-os](https://github.com/pop-os)
 - [nmrs-tui](https://github.com/y2w8/nmrs-tui) by [@y2w8](https://github.com/y2w8)
-- [nmrs-gui](https://github.com/networkmanager-rs/nmrs-gui) by [@networkmanager-rs](https://github.com/networkmanager-rs)
 - [gaypanel](https://codeberg.org/pastthepixels/gaypanel) by [@pastthepixels](https://codeberg.org/pastthepixels)
+- [nmrs-gui](https://github.com/networkmanager-rs/nmrs-gui) by [@networkmanager-rs](https://github.com/networkmanager-rs)
+- [android-auto](https://github.com/uglyoldbob/android-auto) by [uglyoldbob](https://github.com/uglyoldbob)
 
 # Roadmap / Implementation Status
 
