@@ -1,6 +1,8 @@
 # Builders Module
 
-The `builders` module provides low-level APIs for constructing NetworkManager connection settings. Most users should use the high-level `NetworkManager` API instead — these builders are for advanced use cases where you need fine-grained control.
+The `builders` module provides low-level APIs for constructing NetworkManager connection settings. Most users should use the high-level `NetworkManager` API instead — these builders are for advanced use cases where you need fine-grained control over the settings dictionary before calling NetworkManager D-Bus methods directly.
+
+To submit builder output, use [`NetworkManager::dbus_connection()`](./network-manager.md#advanced-d-bus-access) together with [`nmrs::raw`](./raw.md) (`zbus` / `zvariant` re-exports). See [Submitting Builder Output](#submitting-builder-output) below.
 
 ## ConnectionBuilder
 
@@ -148,6 +150,68 @@ Use the builders when you need:
 
 For standard connections, the `NetworkManager` API handles everything automatically.
 
+## Submitting Builder Output
+
+Builders produce a NetworkManager settings dictionary
+(`HashMap<&str, HashMap<&str, zvariant::Value>>`). To activate that profile you
+need the same system D-Bus connection nmrs already manages, plus compatible
+`zbus` / `zvariant` types from [`nmrs::raw`](./raw.md).
+
+### Wi-Fi hotspot (AP mode)
+
+This is the workflow for cases such as [#260](https://github.com/freedesktop-rs/nmrs/issues/260) where the high-level `connect()` API does not expose every builder knob (for example `WifiMode::Ap`):
+
+```rust
+use nmrs::builders::{WifiConnectionBuilder, WifiMode};
+use nmrs::raw::{zbus, zvariant};
+use nmrs::{NetworkManager, Result};
+
+#[zbus::proxy(
+    interface = "org.freedesktop.NetworkManager",
+    default_service = "org.freedesktop.NetworkManager",
+    default_path = "/org/freedesktop/NetworkManager"
+)]
+trait Nm {
+    fn add_and_activate_connection(
+        &self,
+        connection: std::collections::HashMap<
+            &str,
+            std::collections::HashMap<&str, zvariant::Value<'_>>,
+        >,
+        device: zvariant::OwnedObjectPath,
+        specific_object: zvariant::OwnedObjectPath,
+    ) -> zbus::Result<(zvariant::OwnedObjectPath, zvariant::OwnedObjectPath)>;
+}
+
+async fn start_hotspot(nm: &NetworkManager, interface: &str) -> Result<()> {
+    let settings = WifiConnectionBuilder::new("Hotspot")
+        .wpa_psk("password")
+        .mode(WifiMode::Ap)
+        .ipv4_shared()
+        .ipv6_ignore()
+        .build();
+
+    let device = nm.get_device_by_interface(interface).await?;
+    let proxy = NmProxy::new(nm.dbus_connection()).await?;
+    proxy
+        .add_and_activate_connection(settings, device, "/".into())
+        .await?;
+
+    Ok(())
+}
+```
+
+Notes:
+
+- Use `"/"` as `specific_object` for AP mode and other cases where there is no target access point.
+- For client (infrastructure) mode, resolve an access-point object path first (nmrs does this internally in `connect()`).
+- Map D-Bus errors to `ConnectionError::Dbus` (or handle them in your own error type).
+- nmrs does not yet provide a high-level wrapper for `AddConnection` / `AddAndActivateConnection`; `dbus_connection()` is the supported escape hatch.
+
+### Saving without activating
+
+To persist a profile without bringing it up immediately, define a proxy method for `AddConnection` instead and pass the same `settings` map. nmrs uses that D-Bus call internally when saving VPN profiles.
+
 ## OpenVpnBuilder
 
 Builds OpenVPN connection settings from an `OpenVpnConfig` or by importing a `.ovpn` file.
@@ -187,3 +251,9 @@ nm.import_ovpn("client.ovpn", Some("user"), Some("secret")).await?;
 ## Full API Reference
 
 See [docs.rs/nmrs](https://docs.rs/nmrs) for complete builder documentation.
+
+## See Also
+
+- [Raw Module](./raw.md) – `zbus` / `zvariant` re-exports for advanced D-Bus work
+- [NetworkManager API](./network-manager.md#advanced-d-bus-access) – `dbus_connection()`
+- [D-Bus Architecture](../advanced/dbus.md) – how settings reach NetworkManager

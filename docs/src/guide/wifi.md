@@ -155,10 +155,10 @@ let opts = ConnectionOptions::new(true)   // autoconnect
 
 This struct intentionally only covers the connection-management knobs
 NetworkManager exposes per-profile. To configure DHCP method, manual IP
-addresses, custom DNS servers, or static routes you need a builder — see
-the [`ConnectionBuilder`](../api/builders.md#connectionbuilder) reference,
-or use [`WifiConnectionBuilder`](../api/builders.md#wificonnectionbuilder)
-for Wi-Fi-specific defaults.
+addresses, custom DNS servers, static routes, or Wi-Fi modes such as AP/hotspot,
+use a builder — see the [`ConnectionBuilder`](../api/builders.md#connectionbuilder)
+reference, [`WifiConnectionBuilder`](../api/builders.md#wificonnectionbuilder),
+and [Submitting Builder Output](../api/builders.md#submitting-builder-output).
 
 ## WiFi Radio Control
 

@@ -6,7 +6,7 @@ This page describes the internal architecture of the nmrs library. Understanding
 
 ```
 nmrs/src/
-├── lib.rs              # Crate root: re-exports, Result type alias
+├── lib.rs              # Crate root: re-exports, Result type alias, raw module
 ├── api/                # Public API layer
 │   ├── mod.rs
 │   ├── network_manager.rs   # NetworkManager struct and methods
@@ -73,11 +73,12 @@ nmrs/src/
 │  api/network_manager.rs  ← Public API (NetworkManager)   │
 │  api/models/             ← Public data types              │
 │  api/builders/           ← Public connection builders     │
+│  lib.rs::raw             ← zbus / zvariant re-exports     │
 ├──────────────────────────────────────────────────────────┤
 │  core/                   ← Business logic (not public)    │
 │  monitoring/             ← Signal monitoring (not public) │
 ├──────────────────────────────────────────────────────────┤
-│  dbus/                   ← D-Bus proxy types (not public) │
+│  dbus/                   ← Internal D-Bus proxy types       │
 │  util/                   ← Utilities (not public)         │
 │  types/                  ← Constants (not public)         │
 ├──────────────────────────────────────────────────────────┤
@@ -93,6 +94,8 @@ The `api` module defines the public interface:
 - `NetworkManager` delegates to `core` functions
 - `models` define all public data types
 - `builders` construct NM settings dictionaries
+- `raw` re-exports `zbus` and `zvariant` for advanced D-Bus callers
+- `NetworkManager::dbus_connection()` exposes the shared system bus connection
 
 ### Core Layer
 

@@ -7,6 +7,7 @@ All notable changes to the `nmrs` crate will be documented in this file.
 - Expose existing secrets on SecretRequest for re-auth prefill ([#460](https://github.com/freedesktop-rs/nmrs/pull/460))
 - `MonitorHandle` returned by `monitor_network_changes` and `monitor_device_changes` for graceful shutdown ([#461](https://github.com/freedesktop-rs/nmrs/pull/461))
 - `NetworkManager::dbus_connection()` and `nmrs::raw` (`zbus` / `zvariant` re-exports) for advanced builder workflows ([#462](https://github.com/freedesktop-rs/nmrs/pull/464))
+- mdbook docs for `dbus_connection()`, `nmrs::raw`, and submitting builder output ([#462](https://github.com/freedesktop-rs/nmrs/pull/464))
 
 ### Fixed
 - `monitor_network_changes` now detects hotplugged Wi-Fi devices instead of only monitoring devices present at startup ([#461](https://github.com/freedesktop-rs/nmrs/pull/461))

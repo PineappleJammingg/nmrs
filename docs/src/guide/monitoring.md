@@ -2,6 +2,9 @@
 
 nmrs uses D-Bus signals to provide real-time notifications when network state changes. This is more efficient than polling — your callback fires only when something actually changes.
 
+Both `monitor_network_changes()` and `monitor_device_changes()` return a
+[`MonitorHandle`](../api/types.md) you can use to shut the monitor down cleanly.
+
 ## Network Change Monitoring
 
 Subscribe to network changes (access points appearing or disappearing, or signal
@@ -14,11 +17,13 @@ use nmrs::NetworkManager;
 async fn main() -> nmrs::Result<()> {
     let nm = NetworkManager::new().await?;
 
-    // This runs indefinitely — spawn it as a background task
-    nm.monitor_network_changes(|| {
+    let handle = nm.monitor_network_changes(|| {
         println!("Network list changed!");
     }).await?;
 
+    // ... application work ...
+
+    handle.stop().await?;
     Ok(())
 }
 ```
@@ -36,10 +41,13 @@ use nmrs::NetworkManager;
 async fn main() -> nmrs::Result<()> {
     let nm = NetworkManager::new().await?;
 
-    nm.monitor_device_changes(|| {
+    let handle = nm.monitor_device_changes(|| {
         println!("Device state changed!");
     }).await?;
 
+    // ... application work ...
+
+    handle.stop().await?;
     Ok(())
 }
 ```
@@ -48,7 +56,8 @@ async fn main() -> nmrs::Result<()> {
 
 ## Running Monitors as Background Tasks
 
-Both monitoring functions run indefinitely. In a real application, spawn them as background tasks:
+In a real application, spawn monitors as background tasks and keep the returned
+`MonitorHandle` so you can stop them on shutdown:
 
 ### With Tokio
 
@@ -59,30 +68,32 @@ use nmrs::NetworkManager;
 async fn main() -> nmrs::Result<()> {
     let nm = NetworkManager::new().await?;
 
-    // Spawn network monitor
-    let nm_clone = nm.clone();
-    tokio::spawn(async move {
-        if let Err(e) = nm_clone.monitor_network_changes(|| {
-            println!("Networks changed");
-        }).await {
-            eprintln!("Network monitor error: {}", e);
-        }
-    });
+    let net_handle = {
+        let nm = nm.clone();
+        tokio::spawn(async move {
+            nm.monitor_network_changes(|| {
+                println!("Networks changed");
+            }).await
+        })
+    };
 
-    // Spawn device monitor
-    let nm_clone = nm.clone();
-    tokio::spawn(async move {
-        if let Err(e) = nm_clone.monitor_device_changes(|| {
-            println!("Device state changed");
-        }).await {
-            eprintln!("Device monitor error: {}", e);
-        }
-    });
+    let dev_handle = {
+        let nm = nm.clone();
+        tokio::spawn(async move {
+            nm.monitor_device_changes(|| {
+                println!("Device state changed");
+            }).await
+        })
+    };
 
     // Your main application logic here
     loop {
         tokio::time::sleep(std::time::Duration::from_secs(60)).await;
     }
+
+    // On shutdown:
+    // net_handle.await??.stop().await?;
+    // dev_handle.await??.stop().await?;
 }
 ```
 
@@ -94,23 +105,22 @@ use nmrs::NetworkManager;
 // Inside a GTK application
 let nm = NetworkManager::new().await?;
 
-glib::MainContext::default().spawn_local({
+let net_handle = glib::MainContext::default().spawn_local({
     let nm = nm.clone();
-    async move {
-        let _ = nm.monitor_network_changes(|| {
-            println!("Networks changed — refresh the UI!");
-        }).await;
-    }
+    async move { nm.monitor_network_changes(|| {
+        println!("Networks changed — refresh the UI!");
+    }).await }
 });
 
-glib::MainContext::default().spawn_local({
+let dev_handle = glib::MainContext::default().spawn_local({
     let nm = nm.clone();
-    async move {
-        let _ = nm.monitor_device_changes(|| {
-            println!("Device changed — update status!");
-        }).await;
-    }
+    async move { nm.monitor_device_changes(|| {
+        println!("Device changed — update status!");
+    }).await }
 });
+
+// Keep `net_handle` / `dev_handle` alive, then call `MonitorHandle::stop()`
+// when tearing down the UI.
 ```
 
 ## Thread Safety
@@ -131,22 +141,24 @@ async fn main() -> nmrs::Result<()> {
     let nm = NetworkManager::new().await?;
     let notify = Arc::new(Notify::new());
 
-    // Monitor for changes
-    let notify_clone = notify.clone();
-    let nm_clone = nm.clone();
-    tokio::spawn(async move {
-        let _ = nm_clone.monitor_network_changes(move || {
-            notify_clone.notify_one();
-        }).await;
-    });
+    let handle = {
+        let notify = notify.clone();
+        let nm = nm.clone();
+        tokio::spawn(async move {
+            nm.monitor_network_changes(move || {
+                notify.notify_one();
+            }).await
+        })
+    };
 
-    // React to changes
     loop {
         notify.notified().await;
 
         let networks = nm.list_networks(None).await?;
         println!("Updated: {} networks visible", networks.len());
     }
+
+    // handle.await??.stop().await?;
 }
 ```
 

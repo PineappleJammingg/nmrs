@@ -21,6 +21,22 @@ let nm = NetworkManager::with_config(config).await?;
 let config = nm.timeout_config();
 ```
 
+## Advanced D-Bus Access
+
+```rust
+use nmrs::raw::{zbus, zvariant};
+
+let conn = nm.dbus_connection(); // &zbus::Connection
+```
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `dbus_connection()` | `&zbus::Connection` | Shared system bus connection for advanced D-Bus calls |
+
+Use this with [`nmrs::raw`](./raw.md) and the [builders](./builders.md) module
+when you need to call NetworkManager methods such as `AddConnection` or
+`AddAndActivateConnection` directly. See [Submitting Builder Output](./builders.md#submitting-builder-output).
+
 ## Wi-Fi Methods
 
 | Method | Returns | Description |
@@ -134,8 +150,10 @@ let config = nm.timeout_config();
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `monitor_network_changes(callback)` | `Result<()>` | Watch for AP and signal strength changes (runs forever) |
-| `monitor_device_changes(callback)` | `Result<()>` | Watch for device state changes (runs forever) |
+| `monitor_network_changes(callback)` | `Result<MonitorHandle>` | Watch for AP and signal strength changes |
+| `monitor_device_changes(callback)` | `Result<MonitorHandle>` | Watch for device state changes |
+
+Call `MonitorHandle::stop().await?` to shut down a monitor cleanly.
 
 ## Thread Safety
 

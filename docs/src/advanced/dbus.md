@@ -36,6 +36,18 @@ let nm = NetworkManager::new().await?;
 
 This creates a persistent D-Bus connection that's shared across all operations.
 
+### Advanced access
+
+For builder workflows and other low-level D-Bus calls, nmrs exposes the same
+connection through [`NetworkManager::dbus_connection()`](../api/network-manager.md#advanced-d-bus-access).
+Pair it with [`nmrs::raw`](../api/raw.md) (`zbus` / `zvariant` re-exports) so
+the types returned by builders are compatible with the connection nmrs manages.
+
+Most applications should keep using the high-level `NetworkManager` methods.
+Reach for `dbus_connection()` only when you need to call NetworkManager D-Bus
+methods that nmrs does not wrap yet (for example `AddAndActivateConnection`
+with custom builder output).
+
 ### Method Calls
 
 API methods like `list_devices()` translate to D-Bus method calls:
@@ -76,7 +88,7 @@ nmrs: nm.connect("MyWiFi", None, WifiSecurity::WpaPsk { psk: "..." })
 
 ## D-Bus Proxy Types
 
-nmrs wraps D-Bus interfaces in typed proxy structs (defined in `nmrs::dbus`):
+nmrs wraps D-Bus interfaces in typed proxy structs (defined in the internal `dbus` module):
 
 | Proxy | D-Bus Interface | Purpose |
 |-------|----------------|---------|
@@ -88,7 +100,13 @@ nmrs wraps D-Bus interfaces in typed proxy structs (defined in `nmrs::dbus`):
 | `NMWiredProxy` | `org.freedesktop.NetworkManager.Device.Wired` | Wired device properties |
 | `NMBluetoothProxy` | `org.freedesktop.NetworkManager.Device.Bluetooth` | Bluetooth properties |
 
-These are internal types — you interact with them through the high-level `NetworkManager` API.
+These proxy types are **not** part of the public API. Normal callers interact
+with NetworkManager through the high-level [`NetworkManager`](../api/network-manager.md)
+methods.
+
+Advanced callers can define their own minimal `#[zbus::proxy]` traits on top of
+[`dbus_connection()`](../api/network-manager.md#advanced-d-bus-access) and
+[`nmrs::raw`](../api/raw.md). See [Submitting Builder Output](../api/builders.md#submitting-builder-output).
 
 ## D-Bus Errors
 
@@ -143,5 +161,7 @@ busctl list | grep NetworkManager
 
 ## Next Steps
 
+- [Raw Module](../api/raw.md) – `zbus` / `zvariant` re-exports for advanced callers
+- [Builders Module](../api/builders.md) – construct and submit custom settings dictionaries
 - [Logging and Debugging](./logging.md) – enable nmrs debug logging
 - [Architecture](../development/architecture.md) – internal code structure

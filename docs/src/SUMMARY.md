@@ -53,6 +53,7 @@
 - [NetworkManager](./api/network-manager.md)
 - [Models Module](./api/models.md)
 - [Builders Module](./api/builders.md)
+- [Raw Module](./api/raw.md)
 - [Error Types](./api/errors.md)
 
 # Development
