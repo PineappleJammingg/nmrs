@@ -442,9 +442,10 @@ mod tests {
         assert_eq!(strength_or_zero(Some(100)), 100);
         assert_eq!(strength_or_zero(None), 0);
     }
-
+    
+    #[test]
     fn test_bluez_device_path() {
-        assert_eq!(bluez_device_path("00:1A:7D:DA:71:13", None), "hci0");
-        assert_eq!(bluez_device_path("00:1A:7D:DA:71:13", Some("hci1")), "hci1")
+        assert_eq!(bluez_device_path("00:1A:7D:DA:71:13", None), "/org/bluez/hci0/dev_00_1A_7D_DA_71_13");
+        assert_eq!(bluez_device_path("00:1A:7D:DA:71:13", Some("hci1")), "/org/bluez/hci1/dev_00_1A_7D_DA_71_13")
     }
 }
