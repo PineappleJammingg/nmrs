@@ -5,7 +5,7 @@
 [![Documentation](https://docs.rs/nmrs/badge.svg)](https://docs.rs/nmrs)
 [![User Guide](https://img.shields.io/badge/docs-mdBook-blue)](https://freedesktop-rs.github.io/nmrs/)
 [![CI](https://github.com/freedesktop-rs/nmrs/actions/workflows/ci.yml/badge.svg)](https://github.com/freedesktop-rs/nmrs/actions/workflows/ci.yml)
-[![License](https://img.shields.io/crates/l/nmrs)](LICENSE)
+[![License](https://img.shields.io/crates/l/nmrs)](LICENSE-MIT)
 
 An async-first Rust API for [NetworkManager](https://networkmanager.dev/) over [D-Bus](https://dbus.freedesktop.org/doc/dbus-specification.html). The goal is to provide a safe and simple high-level API for managing Wi-Fi connections on Linux systems, built on [`zbus`](https://docs.rs/zbus) for reliable D-Bus communication.
 
